@@ -1,0 +1,43 @@
+---
+services:
+  nginx:
+    image: ${PROJECT}/nginx:${TAG}
+    container_name: ${NGINX_HOST}
+    build:
+      context: nginx
+      dockerfile: Dockerfile
+      args:
+        ENABLED_MODULES: rtmp
+    env_file: .env
+    ports:
+      - ${HTTP_PORT}:${HTTP_PORT}
+      - ${RTMP_PORT}:${RTMP_PORT}
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/rtmp.conf:/etc/nginx/templates/rtmp.conf.template
+      - ./nginx/http.conf:/etc/nginx/templates/http.conf.template
+      - ./nginx/index.html:/usr/share/nginx/html/index.html
+    networks:
+      streaming_net:
+        ipv4_address: ${NGINX_IP}
+
+  ffmpeg:
+    image: ${PROJECT}/ffmpeg:${TAG}
+    container_name: ${FFMPEG_HOST}
+    build:
+      context: ./ffmpeg
+      dockerfile: Dockerfile
+    env_file: .env
+    depends_on:
+      - nginx
+    networks:
+      streaming_net:
+        ipv4_address: ${FFMPEG_IP}
+
+networks:
+  streaming_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${SUBNET}
